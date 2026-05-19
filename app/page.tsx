@@ -23,7 +23,7 @@ export default function Home() {
   return (
     <div className="flex h-screen overflow-hidden">
       <div className="flex-1 min-w-0 overflow-hidden">
-        <DocumentPreview html={htmlPreview} sessionId={sessionId} />
+        <DocumentPreview html={htmlPreview} sessionId={sessionId} onHome={() => setSessionId(null)} />
       </div>
       <div className="w-[420px] shrink-0 overflow-hidden">
         <ChatPanel sessionId={sessionId} onPreviewUpdate={setHtmlPreview} />

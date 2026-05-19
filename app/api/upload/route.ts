@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { docxToHtml, extractDocxParagraphs } from "@/lib/docx";
-import { setSession } from "@/lib/store";
+import { setSession, bufferToB64 } from "@/lib/store";
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   if (
     !file.name.endsWith(".docx") &&
     file.type !==
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   ) {
     return NextResponse.json(
       { error: "Please upload a .docx file" },
@@ -29,8 +29,8 @@ export async function POST(req: NextRequest) {
   const htmlPreview = await docxToHtml(buffer);
 
   const sessionId = randomUUID();
-  setSession(sessionId, {
-    currentBuffer: buffer,
+  await setSession(sessionId, {
+    currentBufferB64: bufferToB64(buffer),
     htmlPreview,
     paragraphs: plain,
     annotatedParagraphs: annotated,

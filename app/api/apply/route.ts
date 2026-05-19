@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession, updateSession } from "@/lib/store";
+import { getSession, updateSession, bufferToB64, b64ToBuffer } from "@/lib/store";
 import { applyEdit, docxToHtml, extractDocxParagraphs } from "@/lib/docx";
 import type { ProposedEdit } from "@/lib/ai";
 
@@ -16,12 +16,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const session = getSession(sessionId);
+  const session = await getSession(sessionId);
   if (!session) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
   }
 
-  let currentBuffer = session.currentBuffer;
+  let currentBuffer = b64ToBuffer(session.currentBufferB64);
   const results: { id: string; applied: boolean }[] = [];
 
   for (const edit of edits) {
@@ -44,12 +44,12 @@ export async function POST(req: NextRequest) {
   const historyEntry =
     appliedEdits.length > 0
       ? `User accepted ${appliedEdits.length} change(s): ${appliedEdits
-          .map((e) => `In "${e.section}": changed "${e.original.replace(/\*\*/g, "")}" to "${e.replacement.replace(/\*\*/g, "")}"`)
-          .join("; ")}`
+        .map((e) => `In "${e.section}": changed "${e.original.replace(/\*\*/g, "")}" to "${e.replacement.replace(/\*\*/g, "")}"`)
+        .join("; ")}`
       : "User accepted changes but none could be matched in the document.";
 
-  updateSession(sessionId, {
-    currentBuffer,
+  await updateSession(sessionId, {
+    currentBufferB64: bufferToB64(currentBuffer),
     htmlPreview,
     paragraphs: plain,
     annotatedParagraphs: annotated,
