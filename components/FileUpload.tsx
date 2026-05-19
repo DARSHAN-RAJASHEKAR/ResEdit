@@ -126,8 +126,20 @@ export default function FileUpload({ onUploaded }: Props) {
       </div>
 
       {/* Footer minimal */}
-      <div className="absolute bottom-6 text-slate-400 text-sm">
-        Secure and private. Files are not permanently stored.
+      <div className="absolute bottom-6 text-slate-400 text-sm text-center space-y-1">
+        <p>Secure and private. Files are not permanently stored.</p>
+        <p>
+          Built using{" "}
+          <a
+            href="https://claude.com/product/claude-code"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-slate-300 transition-colors"
+          >
+            Claude Code
+          </a>
+          , powered by Sonnet 4.6.
+        </p>
       </div>
     </div>
   );

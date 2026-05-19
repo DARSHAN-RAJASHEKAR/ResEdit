@@ -1,6 +1,7 @@
 export interface ProposedEdit {
   id: string;
   section: string;
+  operation?: "replace" | "insert_after";
   original: string;
   replacement: string;
   reason: string;
@@ -84,11 +85,25 @@ Edit schema:
   "edits": [
     {
       "section": "e.g. Summary, Work Experience, Skills",
+      "operation": "replace",
       "original": "verbatim line from the resume",
       "replacement": "improved version",
       "reason": "one sentence explanation"
     }
   ]
+}
+
+OPERATIONS:
+- "replace" (default): replace the paragraph matching "original" with "replacement"
+- "insert_after": insert "replacement" as a NEW paragraph after the paragraph matching "original". Use this when the user asks to ADD a new bullet point, line, or section. The "original" field is the anchor paragraph to insert after.
+
+Example of insert_after:
+{
+  "section": "Work Experience",
+  "operation": "insert_after",
+  "original": "Built RESTful APIs using FastAPI...",
+  "replacement": "New bullet point text to insert",
+  "reason": "Adding new achievement"
 }
 
 Return ONLY valid JSON. No markdown, no explanation outside the JSON.`,

@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
     const { buffer, applied } = applyEdit(
       currentBuffer,
       edit.original,
-      edit.replacement
+      edit.replacement,
+      edit.operation ?? "replace"
     );
     if (applied) currentBuffer = buffer;
     results.push({ id: edit.id, applied });

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import type { ProposedEdit } from "@/lib/ai";
-import { Sparkles, Send, CheckCircle2, XCircle, Bot, User, CornerDownRight, Check, X, Loader2 } from "lucide-react";
+import { Sparkles, Send, CheckCircle2, XCircle, Bot, User, CornerDownRight, Check, X, Loader2, Minus } from "lucide-react";
 
 function stripXml(text: string): string {
   if (!text.includes("<")) return text;
@@ -33,9 +33,10 @@ interface Message {
 interface Props {
   sessionId: string;
   onPreviewUpdate: (html: string) => void;
+  onToggleMobile?: () => void;
 }
 
-export default function ChatPanel({ sessionId, onPreviewUpdate }: Props) {
+export default function ChatPanel({ sessionId, onPreviewUpdate, onToggleMobile }: Props) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "ai",
@@ -45,10 +46,18 @@ export default function ChatPanel({ sessionId, onPreviewUpdate }: Props) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [input]);
 
   function updateEditStates(msgIndex: number, updates: Record<string, EditStatus>) {
     setMessages((prev) =>
@@ -188,6 +197,13 @@ export default function ChatPanel({ sessionId, onPreviewUpdate }: Props) {
             <p className="text-xs text-slate-500">Your personal career coach</p>
           </div>
         </div>
+        {/* Minimize button — mobile only */}
+        <button
+          className="md:hidden w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors"
+          onClick={onToggleMobile}
+        >
+          <Minus className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Chat History */}
@@ -241,18 +257,38 @@ export default function ChatPanel({ sessionId, onPreviewUpdate }: Props) {
                           </div>
 
                           <div className="p-4 space-y-3">
-                            <div className="relative pl-4 border-l-2 border-red-200">
-                              <span className="absolute -left-2 -top-1 w-4 h-4 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-[10px]"><X className="w-2.5 h-2.5" /></span>
-                              <p className="text-sm text-slate-600 bg-red-50/50 p-2 rounded-md">
-                                {renderBold(stripXml(edit.original))}
-                              </p>
-                            </div>
-                            <div className="relative pl-4 border-l-2 border-green-400">
-                              <span className="absolute -left-2 -top-1 w-4 h-4 rounded-full bg-green-100 text-green-600 flex items-center justify-center"><Check className="w-3 h-3" /></span>
-                              <p className="text-sm text-slate-900 font-medium bg-green-50/50 p-2 rounded-md">
-                                {renderBold(stripXml(edit.replacement))}
-                              </p>
-                            </div>
+                            {edit.operation === "insert_after" ? (
+                              <>
+                                <div className="relative pl-4 border-l-2 border-slate-200">
+                                  <p className="text-xs text-slate-400 font-medium mb-1">Insert after</p>
+                                  <p className="text-sm text-slate-500 bg-slate-50 p-2 rounded-md italic">
+                                    {renderBold(stripXml(edit.original))}
+                                  </p>
+                                </div>
+                                <div className="relative pl-4 border-l-2 border-blue-400">
+                                  <span className="absolute -left-2 -top-1 w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold">+</span>
+                                  <p className="text-xs text-blue-600 font-medium mb-1">New line</p>
+                                  <p className="text-sm text-slate-900 font-medium bg-blue-50/50 p-2 rounded-md">
+                                    {renderBold(stripXml(edit.replacement))}
+                                  </p>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="relative pl-4 border-l-2 border-red-200">
+                                  <span className="absolute -left-2 -top-1 w-4 h-4 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-[10px]"><X className="w-2.5 h-2.5" /></span>
+                                  <p className="text-sm text-slate-600 bg-red-50/50 p-2 rounded-md">
+                                    {renderBold(stripXml(edit.original))}
+                                  </p>
+                                </div>
+                                <div className="relative pl-4 border-l-2 border-green-400">
+                                  <span className="absolute -left-2 -top-1 w-4 h-4 rounded-full bg-green-100 text-green-600 flex items-center justify-center"><Check className="w-3 h-3" /></span>
+                                  <p className="text-sm text-slate-900 font-medium bg-green-50/50 p-2 rounded-md">
+                                    {renderBold(stripXml(edit.replacement))}
+                                  </p>
+                                </div>
+                              </>
+                            )}
                             <div className="flex items-start gap-2 pt-2 text-slate-500">
                               <CornerDownRight className="w-4 h-4 shrink-0 text-indigo-400" />
                               <p className="text-xs italic leading-tight">{edit.reason}</p>
@@ -327,6 +363,7 @@ export default function ChatPanel({ sessionId, onPreviewUpdate }: Props) {
       <div className="p-4 bg-white/80 backdrop-blur-md border-t border-slate-100">
         <div className="relative flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-2 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all shadow-inner">
           <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
@@ -338,10 +375,8 @@ export default function ChatPanel({ sessionId, onPreviewUpdate }: Props) {
             placeholder="E.g. Make my summary more impactful..."
             rows={1}
             disabled={loading}
-            className="flex-1 max-h-32 min-h-[40px] resize-none bg-transparent px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none disabled:opacity-50"
-            style={{
-              height: "auto",
-            }}
+            className="flex-1 resize-none bg-transparent px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none disabled:opacity-50 overflow-y-auto"
+            style={{ minHeight: "40px", maxHeight: "192px" }}
           />
           <button
             onClick={sendCommand}

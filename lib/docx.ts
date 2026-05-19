@@ -176,10 +176,59 @@ function rebuildParagraphNode(doc: Document, pNode: Element, newText: string): E
   return pNode;
 }
 
+function createParagraphNode(doc: Document, anchorNode: Element, text: string): Element {
+  const newP = doc.createElement("w:p");
+
+  // Clone paragraph properties (list style, spacing, indent) from anchor
+  const pPrs = anchorNode.getElementsByTagName("w:pPr");
+  if (pPrs.length > 0) {
+    newP.appendChild(pPrs[0].cloneNode(true));
+  }
+
+  // Clone run properties (font, size) from anchor's first run
+  let baseRPr: Node | null = null;
+  const runs = anchorNode.getElementsByTagName("w:r");
+  if (runs.length > 0) {
+    const rPrs = runs[0].getElementsByTagName("w:rPr");
+    if (rPrs.length > 0) baseRPr = rPrs[0].cloneNode(true);
+  }
+
+  const segments = parseSegments(text);
+  for (const segment of segments) {
+    const rNode = doc.createElement("w:r");
+    let rPrNode = baseRPr ? (baseRPr.cloneNode(true) as Element) : null;
+
+    if (rPrNode) {
+      const toRemove: Element[] = [];
+      for (let i = 0; i < rPrNode.childNodes.length; i++) {
+        const child = rPrNode.childNodes[i] as Element;
+        if (child.tagName === "w:b" || child.tagName === "w:bCs") toRemove.push(child);
+      }
+      toRemove.forEach((c) => rPrNode!.removeChild(c));
+      if (segment.bold) {
+        rPrNode.appendChild(doc.createElement("w:b"));
+        rPrNode.appendChild(doc.createElement("w:bCs"));
+      }
+      rNode.appendChild(rPrNode);
+    }
+
+    const tNode = doc.createElement("w:t");
+    if (segment.text.startsWith(" ") || segment.text.endsWith(" ")) {
+      tNode.setAttribute("xml:space", "preserve");
+    }
+    tNode.appendChild(doc.createTextNode(segment.text));
+    rNode.appendChild(tNode);
+    newP.appendChild(rNode);
+  }
+
+  return newP;
+}
+
 export function applyEdit(
   buffer: Buffer,
   original: string,
-  replacement: string
+  replacement: string,
+  operation: "replace" | "insert_after" = "replace"
 ): { buffer: Buffer; applied: boolean } {
   const zip = new PizZip(buffer);
   const xml = zip.files["word/document.xml"].asText();
@@ -199,20 +248,27 @@ export function applyEdit(
     const text = extractTextFromNode(pNode);
     const normText = normalize(text);
 
-    if (normText === normOriginal) {
+    if (normText === normOriginal || normText.includes(normOriginal)) {
       applied = true;
-      if (replacement.trim() === "") {
-        pNode.parentNode?.removeChild(pNode);
+
+      if (operation === "insert_after") {
+        const newP = createParagraphNode(doc, pNode, replacement);
+        pNode.parentNode?.insertBefore(newP, pNode.nextSibling);
       } else {
-        rebuildParagraphNode(doc, pNode, replacement);
-      }
-    } else if (normText.includes(normOriginal)) {
-      applied = true;
-      const newText = text.replace(cleanedOriginal.trim(), replacement.replace(/\*\*/g, ""));
-      if (newText.trim() === "") {
-        pNode.parentNode?.removeChild(pNode);
-      } else {
-        rebuildParagraphNode(doc, pNode, newText);
+        if (normText === normOriginal) {
+          if (replacement.trim() === "") {
+            pNode.parentNode?.removeChild(pNode);
+          } else {
+            rebuildParagraphNode(doc, pNode, replacement);
+          }
+        } else {
+          const newText = text.replace(cleanedOriginal.trim(), replacement.replace(/\*\*/g, ""));
+          if (newText.trim() === "") {
+            pNode.parentNode?.removeChild(pNode);
+          } else {
+            rebuildParagraphNode(doc, pNode, newText);
+          }
+        }
       }
     }
   }
