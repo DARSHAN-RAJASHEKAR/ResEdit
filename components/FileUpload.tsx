@@ -138,7 +138,7 @@ export default function FileUpload({ onUploaded }: Props) {
           >
             Claude Code
           </a>
-          , powered by Sonnet 4.6.
+          , powered by Sonnet 4.6
         </p>
       </div>
     </div>
