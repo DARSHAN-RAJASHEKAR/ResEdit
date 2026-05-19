@@ -1,7 +1,14 @@
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export interface DocSession {
   currentBuffer: Buffer;
   htmlPreview: string;
   paragraphs: string[];
+  annotatedParagraphs: string[];
+  history: ChatMessage[];
 }
 
 // Attach to global so Next.js hot-reloads don't wipe sessions in dev mode

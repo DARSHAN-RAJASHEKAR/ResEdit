@@ -34,12 +34,30 @@ export async function POST(req: NextRequest) {
     results.push({ id: edit.id, applied });
   }
 
-  const [htmlPreview, paragraphs] = await Promise.all([
-    docxToHtml(currentBuffer),
-    Promise.resolve(extractDocxParagraphs(currentBuffer)),
-  ]);
+  const { plain, annotated } = extractDocxParagraphs(currentBuffer);
+  const htmlPreview = await docxToHtml(currentBuffer);
 
-  updateSession(sessionId, { currentBuffer, htmlPreview, paragraphs });
+  const appliedEdits = edits.filter((e) =>
+    results.find((r) => r.id === e.id && r.applied)
+  );
+
+  const historyEntry =
+    appliedEdits.length > 0
+      ? `User accepted ${appliedEdits.length} change(s): ${appliedEdits
+          .map((e) => `In "${e.section}": changed "${e.original.replace(/\*\*/g, "")}" to "${e.replacement.replace(/\*\*/g, "")}"`)
+          .join("; ")}`
+      : "User accepted changes but none could be matched in the document.";
+
+  updateSession(sessionId, {
+    currentBuffer,
+    htmlPreview,
+    paragraphs: plain,
+    annotatedParagraphs: annotated,
+    history: [
+      ...session.history,
+      { role: "assistant", content: historyEntry },
+    ],
+  });
 
   return NextResponse.json({ htmlPreview, results });
 }

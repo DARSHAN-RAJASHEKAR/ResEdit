@@ -10,6 +10,17 @@ function stripXml(text: string): string {
   return text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+// Render **bold** markers as <strong> elements
+function renderBold(text: string): React.ReactNode[] {
+  const parts = text.split(/(\*\*[\s\S]*?\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
 type EditStatus = "pending" | "accepted" | "rejected";
 
 interface Message {
@@ -143,7 +154,12 @@ export default function ChatPanel({ sessionId, onPreviewUpdate }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to get suggestions");
 
-      if (!data.edits || data.edits.length === 0) {
+      if (data.type === "answer") {
+        setMessages((prev) => [
+          ...prev,
+          { role: "ai", text: data.text },
+        ]);
+      } else if (!data.edits || data.edits.length === 0) {
         setMessages((prev) => [
           ...prev,
           { role: "ai", text: "No changes are needed for that request." },
@@ -203,7 +219,7 @@ export default function ChatPanel({ sessionId, onPreviewUpdate }: Props) {
               >
                 {msg.text && (
                   <p className={`text-sm ${msg.role === "ai" ? "text-gray-700" : ""}`}>
-                    {msg.text}
+                    {msg.role === "ai" ? renderBold(msg.text) : msg.text}
                   </p>
                 )}
 
@@ -240,13 +256,13 @@ export default function ChatPanel({ sessionId, onPreviewUpdate }: Props) {
                             <div>
                               <p className="text-xs text-red-500 font-medium mb-0.5">Remove</p>
                               <p className="text-xs text-gray-700 bg-red-50 rounded p-2 line-through">
-                                {stripXml(edit.original)}
+                                {renderBold(stripXml(edit.original))}
                               </p>
                             </div>
                             <div>
                               <p className="text-xs text-green-600 font-medium mb-0.5">Replace with</p>
                               <p className="text-xs text-gray-700 bg-green-50 rounded p-2">
-                                {edit.replacement}
+                                {renderBold(stripXml(edit.replacement))}
                               </p>
                             </div>
                             <p className="text-xs text-gray-500 italic">{edit.reason}</p>

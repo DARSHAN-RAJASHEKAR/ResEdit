@@ -25,13 +25,17 @@ export async function POST(req: NextRequest) {
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
-  const [htmlPreview, paragraphs] = await Promise.all([
-    docxToHtml(buffer),
-    Promise.resolve(extractDocxParagraphs(buffer)),
-  ]);
+  const { plain, annotated } = extractDocxParagraphs(buffer);
+  const htmlPreview = await docxToHtml(buffer);
 
   const sessionId = randomUUID();
-  setSession(sessionId, { currentBuffer: buffer, htmlPreview, paragraphs });
+  setSession(sessionId, {
+    currentBuffer: buffer,
+    htmlPreview,
+    paragraphs: plain,
+    annotatedParagraphs: annotated,
+    history: [],
+  });
 
   return NextResponse.json({ sessionId, htmlPreview });
 }
