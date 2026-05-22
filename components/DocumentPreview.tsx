@@ -46,9 +46,9 @@ export default function DocumentPreview({ html, sessionId, onHome, isMobileExpan
         </div>
       </div>
 
-      {/* Banner — hidden on mobile when chat is open */}
-      {showBanner && !isMobileExpanded && (
-        <div className="bg-blue-50 border-b border-blue-100 px-6 py-3 flex items-start gap-3 relative z-10">
+      {/* Banner — hidden on mobile when chat is open, always visible on desktop */}
+      {showBanner && (
+        <div className={`bg-blue-50 border-b border-blue-100 px-6 py-3 items-start gap-3 relative z-10 ${isMobileExpanded ? "hidden md:flex" : "flex"}`}>
           <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="text-sm text-blue-800 font-medium">
